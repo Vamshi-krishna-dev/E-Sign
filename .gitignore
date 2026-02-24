@@ -1,0 +1,55 @@
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environment
+.env
+.env.* 
+*.env
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+app/models/loan_dummy.py
+
+
+storage/
+app/seed/
+
+# VSCode
+.vscode/
+
+# IDE junk
+.idea/
+*.iml
+
+# Logs
+*.log
+logs/
+app.log
+
+# Generated PDFs
+generated_pdfs/
+signed_pdfs/
+agreement_pdfs/
+signed_documents/
+
+# Migrations (if using alembic, optional)
+alembic/versions/
+
+# Byte-compiled
+.pytest_cache/
+.cache/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test coverage
+htmlcov/
+.coverage
+coverage.xml
