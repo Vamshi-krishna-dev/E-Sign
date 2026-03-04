@@ -80,7 +80,10 @@ class PDFGenerator:
         c.showPage()
         c.save()
 
-        return str(file_path)
+        return {
+        "file_path": str(file_path),
+        "file_name": file_name
+    }
     
     # HASH GENERATION
     def generate_hash(self, file_path: str):

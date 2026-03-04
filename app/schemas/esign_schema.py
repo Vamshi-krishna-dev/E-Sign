@@ -3,15 +3,13 @@ from typing import Optional
 
 
 class InitiateRequest(BaseModel):
-    loan_id: int = Field(..., gt=0)
-    aadhar_number: str = Field(..., min_length=12, max_length=12)
+    loan_id: int
+    aadhar_number: str
 
     @field_validator("aadhar_number")
-    def validate_aadhar(cls, v):
-        if not v.isdigit():
-            raise ValueError("Aadhaar must contain only digits")
-        if len(v) != 12:
-            raise ValueError("Aadhaar must be 12 digits")
+    def validate_aadhaar(cls, v):
+        if len(v) != 12 or not v.isdigit():
+            raise ValueError("Aadhaar must be a 12-digit number.")
         return v
 
 
