@@ -238,4 +238,6 @@ Code uses dependency injection & is production-safe
 “E-Sign Module is fully completed in DEV mode and ready for real provider integration.
 All pending items require actual e-Sign provider documentation and loan-service integration.
 
+Disbursement APIs are included to simulate the final stage of the loan lifecycle. In production architecture this would typically be implemented as a separate microservice triggered after successful eSign completion
+
 
