@@ -4,7 +4,6 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.exceptions import throw_error
-from app.middleware.correlation_id import get_correlation_id
 from app.models.loan_dummy import DummyLoan  # <-- Only used in DEV
 
 
@@ -32,12 +31,11 @@ class LoanClient:
     # INTERNAL: Call Real Loan Service API (async)
     async def _call_real_async(self, loan_id: int) -> Dict[str, Any]:
         url = f"{self.base_url}/{loan_id}"
-        cid = get_correlation_id()
 
         for attempt in range(2):
             try:
                 async with httpx.AsyncClient(timeout=self.timeout) as client:
-                    resp = await client.get(url, headers={"X-Request-ID": cid})
+                    resp = await client.get(url, headers={"X-Request-ID": "TODO-CORRELATION-ID"})
 
             except httpx.ConnectError:
                 if attempt == 0:
@@ -68,11 +66,10 @@ class LoanClient:
     # INTERNAL: Call Real Loan Service API (sync)
     def _call_real_sync(self, loan_id: int) -> Dict[str, Any]:
         url = f"{self.base_url}/{loan_id}"
-        cid = get_correlation_id()
 
         for attempt in range(2):
             try:
-                resp = httpx.get(url, timeout=self.timeout, headers={"X-Request-ID": cid})
+                resp = httpx.get(url, timeout=self.timeout, headers={"X-Request-ID": "TODO-CORRELATION-ID"})
 
             except httpx.ConnectError:
                 if attempt == 0:

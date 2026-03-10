@@ -3,7 +3,6 @@ from typing import Dict, Any
 from app.core.config import settings
 from app.core.exceptions import throw_error
 from app.core.logger import logger
-from app.middleware.correlation_id import get_correlation_id
 
 
 class ProviderClient:
@@ -25,11 +24,9 @@ class ProviderClient:
         self.retry_statuses = {502, 503, 504}
 
     def _headers(self):
-        cid = get_correlation_id()
         return {
             "X-API-Key": settings.ESIGN_API_KEY,
             "X-Client-Secret": settings.ESIGN_CLIENT_SECRET,
-            "X-Request-ID": cid,
             "Content-Type": "application/json"
         }
 

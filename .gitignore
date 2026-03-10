@@ -19,7 +19,8 @@ app/models/loan_dummy.py
 
 storage/
 app/seed/
-tests/
+test/
+
 
 # VSCode
 .vscode/

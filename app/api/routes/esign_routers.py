@@ -9,7 +9,6 @@ from app.schemas.callback_schema import EsignCallbackRequest
 from app.pdf.signature import verify_callback_signature
 from app.core.exceptions import throw_error
 from app.utils.response import success_response
-from app.middleware.correlation_id import get_correlation_id
 from app.core.logger import logger
 
 
@@ -30,8 +29,7 @@ async def initiate_esign(
     db: Session = Depends(get_db),
     service: EsignService = Depends(get_esign_service),
 ):
-    cid = get_correlation_id()
-    logger.info(f"[E-SIGN] CID={cid} Initiating eSign for loan_id={request_data.loan_id}")
+    logger.info(f"[E-SIGN] Initiating eSign for loan_id={request_data.loan_id}")
 
     result = await service.initiate_esign(request_data, db)
     return success_response(result)
@@ -44,8 +42,7 @@ async def verify_esign(
     db: Session = Depends(get_db),
     service: EsignService = Depends(get_esign_service),
 ):
-    cid = get_correlation_id()
-    logger.info(f"[E-SIGN] CID={cid} Verifying OTP for txn={request_data.transaction_id}")
+    logger.info(f"[E-SIGN] Verifying OTP for txn={request_data.transaction_id}")
 
     result = await service.verify_esign(request_data, db)
     return success_response(result)
@@ -60,8 +57,7 @@ async def esign_callback(
     service: EsignService = Depends(get_esign_service),
     x_signature: str = Header(None, alias="X-Signature"),
 ):
-    cid = get_correlation_id()
-    logger.info(f"[E-SIGN CALLBACK] CID={cid} Callback received")
+    logger.info(f"[E-SIGN CALLBACK] Received callback for txn={callback_body.transaction_id}")
 
     # Get raw payload for signature verification
     raw_body = await request.body()
@@ -76,11 +72,11 @@ async def esign_callback(
         throw_error("Missing X-Signature header", 401)
 
     if not verify_callback_signature(raw_body, x_signature):
-        logger.warning(f"[CALLBACK] CID={cid} Invalid callback signature")
+        logger.warning(f"callback signature verification failed for txn={callback_body.transaction_id}")
         throw_error("Invalid callback signature", 403)
 
     # Body already parsed by FastAPI (callback_body)
     response = await service.handle_callback(callback_body, db)
 
-    logger.info(f"[E-SIGN CALLBACK] CID={cid} Callback processed")
+    logger.info(f"[E-SIGN CALLBACK] Callback processed for txn={callback_body.transaction_id}")
     return response

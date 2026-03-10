@@ -1,11 +1,10 @@
 from sqlalchemy.orm import Session
-from app.models.models import Agreement
+from app.models.agreement import Agreement
 from app.models.loan_dummy import DummyLoan
 from app.core.logger import logger
 from app.core.exceptions import throw_error
 from app.pdf.pdf_generator import PDFGenerator
 from app.services.loan_client import LoanClient
-from app.middleware.correlation_id import get_correlation_id
 from app.utils.response import success_response
 from app.core.config import settings
 
@@ -18,8 +17,7 @@ class AgreementService:
 
     # FETCH AGREEMENT (RETURN EXISTING OR CREATE NEW)
     def fetch_agreement(self, loan_id: int, db: Session):
-        cid = get_correlation_id()
-        logger.info(f"[AGREEMENT] CID={cid} Fetching agreement for loan_id={loan_id}")
+        logger.info(f"[Agreement] Fetching agreement for loan_id={loan_id}")
 
         if loan_id <= 0:
             throw_error("Invalid loan id", 400)
@@ -106,8 +104,7 @@ class AgreementService:
 
     # VERIFY HASH
     def verify_hash(self, loan_id: int, db: Session):
-        cid = get_correlation_id()
-        logger.info(f"[AGREEMENT] CID={cid} Verifying hash for loan_id={loan_id}")
+        logger.info(f"[Agreement] Fetching agreement for loan_id={loan_id}")
 
         agreement = db.query(Agreement).filter(
             Agreement.loan_id == loan_id,

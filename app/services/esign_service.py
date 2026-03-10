@@ -1,7 +1,9 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
-from app.models.models import EsignSession, SignedDocument, EsignAuditLog, EsignStatus
+from app.models.esign_session import EsignSession, EsignStatus
+from app.models.audit_logs import EsignAuditLog 
+from app.models.signed_documents import SignedDocument
 from app.services.provider.factory import get_esign_provider
 from app.core.exceptions import throw_error
 from app.core.logger import logger
@@ -9,7 +11,6 @@ from app.core.config import settings
 from app.db.db_helper import safe_commit
 from app.pdf.signature import verify_callback_signature
 from app.pdf.file_handler import FileHandler
-from app.middleware.correlation_id import get_correlation_id
 
 from datetime import datetime
 import httpx
@@ -23,8 +24,7 @@ class EsignService:
 
     # INITIATE E-SIGN (SEND OTP)
     async def initiate_esign(self, data, db: Session):
-        cid = get_correlation_id()
-        logger.info(f"[E-SIGN INIT] CID={cid} loan_id={data.loan_id}")
+        logger.info(f"[E-SIGN INIT] Initiating eSign for loan_id={data.loan_id}")
 
         provider = get_esign_provider()
 
@@ -72,8 +72,7 @@ class EsignService:
 
     # VERIFY E-SIGN (VERIFY OTP + GENERATE SIGNATURE)
     async def verify_esign(self, data, db: Session):
-        cid = get_correlation_id()
-        logger.info(f"[E-SIGN VERIFY] CID={cid} txn={data.transaction_id}")
+        logger.info(f"[E-SIGN VERIFY] Verifying eSign for transaction_id={data.transaction_id}")
 
         provider = get_esign_provider()
 
@@ -145,7 +144,7 @@ class EsignService:
             file_path, file_hash = self.file_handler.save_signed_pdf_async(
                 content=resp.content,
                 txn=session.transaction_id
-            )
+                )
 
         # 8. Save document
         signed_doc = SignedDocument(
@@ -165,8 +164,7 @@ class EsignService:
 
     # CALLBACK HANDLER
     async def handle_callback(self, data, db: Session):
-        cid = get_correlation_id()
-        logger.info(f"[E-SIGN CALLBACK] CID={cid} txn={data.transaction_id}")
+        logger.info(f"[CALLBACK] Handling callback for transaction_id={data.transaction_id}")
 
         # 1. Fetch eSign session
         session = db.query(EsignSession).filter(
