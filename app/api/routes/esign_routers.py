@@ -6,7 +6,7 @@ from app.db.database import get_db
 from app.services.esign_service import EsignService
 from app.schemas.esign_schema import InitiateRequest, VerifyRequest
 from app.schemas.callback_schema import EsignCallbackRequest
-from app.pdf.signature import verify_callback_signature
+from app.utils.signature import verify_callback_signature
 from app.core.exceptions import throw_error
 from app.utils.response import success_response
 from app.core.logger import logger
@@ -17,66 +17,65 @@ router = APIRouter(
     tags=["E-Sign"]
 )
 
-# Proper DI
-def get_esign_service():
+
+# Dependency Injection
+def get_esign_service() -> EsignService:
     return EsignService()
 
 
-# INITIATE E-SIGN (SEND OTP)
+# Initiate eSign (Send OTP)
 @router.post("/initiate")
 async def initiate_esign(
     request_data: InitiateRequest,
     db: Session = Depends(get_db),
     service: EsignService = Depends(get_esign_service),
 ):
-    logger.info(f"[E-SIGN] Initiating eSign for loan_id={request_data.loan_id}")
+    logger.info(f"E-Sign initiate request for loan_id={request_data.loan_id}")
 
     result = await service.initiate_esign(request_data, db)
     return success_response(result)
 
 
-# VERIFY E-SIGN (VERIFY OTP + GENERATE SIGNATURE)
+# Verify OTP
 @router.post("/verify")
 async def verify_esign(
     request_data: VerifyRequest,
     db: Session = Depends(get_db),
     service: EsignService = Depends(get_esign_service),
 ):
-    logger.info(f"[E-SIGN] Verifying OTP for txn={request_data.transaction_id}")
+    logger.info(f"E-Sign verify request for txn={request_data.transaction_id}")
 
     result = await service.verify_esign(request_data, db)
     return success_response(result)
 
 
-# PROVIDER CALLBACK (SECURE)
+# Provider Callback
 @router.post("/callback")
 async def esign_callback(
     request: Request,
-    callback_body: EsignCallbackRequest = Body(...),   # <--- forces Swagger to show body # pyright: ignore[reportUndefinedVariable]
+    callback_body: EsignCallbackRequest = Body(...),
     db: Session = Depends(get_db),
     service: EsignService = Depends(get_esign_service),
-    x_signature: str = Header(None, alias="X-Signature"),
+    x_signature: str | None = Header(None, alias="X-Signature"),
 ):
-    logger.info(f"[E-SIGN CALLBACK] Received callback for txn={callback_body.transaction_id}")
+    logger.info(f"E-Sign callback received for txn={callback_body.transaction_id}")
 
-    # Get raw payload for signature verification
     raw_body = await request.body()
 
-    # DEV MODE → Skip signature verification completely
+    # DEV mode → skip signature validation
     if settings.ENV.upper() == "DEV":
-        logger.info("[CALLBACK] DEV MODE -> Signature ignored")
+        logger.info("DEV mode: skipping signature validation")
         return await service.handle_callback(callback_body, db)
 
-    # PROD MODE → Strict signature validation
+    # PROD mode → validate signature
     if not x_signature:
         throw_error("Missing X-Signature header", 401)
 
     if not verify_callback_signature(raw_body, x_signature):
-        logger.warning(f"callback signature verification failed for txn={callback_body.transaction_id}")
+        logger.warning(f"Invalid callback signature for txn={callback_body.transaction_id}")
         throw_error("Invalid callback signature", 403)
 
-    # Body already parsed by FastAPI (callback_body)
-    response = await service.handle_callback(callback_body, db)
+    result = await service.handle_callback(callback_body, db)
 
-    logger.info(f"[E-SIGN CALLBACK] Callback processed for txn={callback_body.transaction_id}")
-    return response
+    logger.info(f"E-Sign callback processed for txn={callback_body.transaction_id}")
+    return result

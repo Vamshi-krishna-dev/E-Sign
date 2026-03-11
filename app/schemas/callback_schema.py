@@ -5,8 +5,5 @@ from typing import Optional
 
 class EsignCallbackRequest(BaseModel):
     transaction_id: str
-    loan_id: int
-    status: Optional[str] = None
-    signed_pdf_url: Optional[str] = None    
-    provider_signature_id: Optional[str] = None
-    timestamp: Optional[datetime] = None
+    status: str
+    signed_pdf_url: str | None = None

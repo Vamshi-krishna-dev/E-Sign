@@ -1,243 +1,291 @@
-**Module Overview**
+*Loan Agreement & E-Sign Module*
+# Overview
 
-This service handles the Loan Agreement PDF generation, E-Sign initiation, OTP verification, provider callback, and disbursement tracking.
-The module is fully functional in DEV mode using a Mock eSign Provider.
+This module manages the loan agreement signing workflow.
 
-**Completed Features (DEV Mode)**
-<Agreement Module>
+Main responsibilities:
+
+Generate loan agreement PDFs
+
+Initiate eSign with provider
+
+Verify OTP
+
+Handle provider callback
+
+Store signed documents
+
+Maintain audit logs for traceability
+
+The module currently runs in DEV mode using a Mock eSign Provider.
+Real provider integration will be completed once provider API documentation is available.
+
+# Implemented Features
+Agreement
 
 Generate loan agreement PDF
 
-Versioning support
-
-SHA-256 hashing
-
-Store agreement entry in DB
-
-Verify agreement integrity
-
-<E-Sign Flow (Mock)>
-
-Initiate e-sign (OTP sent)
-
-Verify OTP (Signed – mock mode)
-
-Store eSign session
-
-Audit logs for each transition
-
-Callback endpoint (DEV mode auto-accepts)
-
-Correlation-ID middleware
-
-<Disbursement Module>
-
-Check disbursement status (mock)
-
-Confirm disbursement
-
-Create disbursement record
-
-Idempotency built-in
-
-**Project Folder Structure**
-app/
- ├── api/
- │    └── routes/
- │         ├── agreement_router.py
- │         ├── esign_routers.py
- │         └── disbursement_router.py
- │
- ├── core/
- │    ├── config.py
- │    ├── exceptions.py
- │    └── logger.py
- │
- ├── db/
- │    ├── database.py
- │    └── db_helper.py
- │
- ├── middleware/
- │    ├── request_logger.py
- │    └── correlation_id.py
- │
- ├── models/
- │    └── models.py
- │
- ├── pdf/
- │    ├── pdf_generator.py
- │    └── signature.py
- │
- ├── schemas/
- │    ├── agreement_schema.py
- │    ├── callback_schema.py
- │    ├── disbursement_schema.py
- │    ├── esign_schema.py
- │    └── loan_schema.py
- │
- ├── services/
- │    ├── agreement_service.py
- │    ├── esign_service.py
- │    ├── disbursement_service.py
- │    └── loan_client.py
- │
- ├── services/provider/
- │    ├── base_provider.py
- │    ├── mock_esign_provider.py
- │    ├── real_esign_provider.py   (Shell only)
- │    ├── provider_client.py
- │    └── factory.py
- │
- └── utils/
-      ├── response.py
-      ├── file_handler.py
-      └── logger.py
+Maintain agreement versioning
+
+Generate SHA-256 hash for document integrity
+
+Store agreement metadata in DB
+
+Verify document integrity
+
+# E-Sign Flow
+
+Implemented using Mock Provider for development testing.
+
+Flow:
+
+Generate Agreement
+       ↓
+Initiate eSign
+       ↓
+OTP Sent
+       ↓
+OTP Verified
+       ↓
+Signed (Mock)
+       ↓
+Callback Received
+       ↓
+Signed Document Stored
+
+# Features included:
+
+eSign session tracking
+
+OTP verification
+
+Provider callback handling
+
+Signed document storage
+
+Audit logging
+
+# Project Structure
+app
+│
+├── api/routes
+│   ├── agreement_router.py
+│   └── esign_routers.py
+│
+├── core
+│   ├── config.py
+│   ├── exceptions.py
+│   └── logger.py
+│
+├── db
+│   ├── database.py
+│   └── db_helper.py
+│
+├── models
+│   ├── agreement.py
+│   ├── esign_session.py
+│   ├── signed_documents.py
+│   └── audit_logs.py
+│
+├── pdf
+│   ├── pdf_generator.py
+│   
+│
+├── schemas
+│   ├── agreement_schema.py
+│   ├── callback_schema.py
+│   └── esign_schema.py
+│
+├── services
+│   ├── agreement_service.py
+│   ├── esign_service.py
+│   └── loan_client.py
+│
+├── provider
+│   ├── base_provider.py
+│   ├── mock_provider.py
+│   ├── real_provider.py
+│   ├── provider_client.py
+│   └── factory.py
+│
+└── utils
+    ├── response.py
+    └── file_handler.py
+    └── signature.py
 
- **Environment Variables (.env)**
-# ENVIRONMENT
-ENV=DEV
-APP_BASE_URL=http://localhost:8000
+# Important Components
+AgreementService
+Handles:
+loan agreement generation
+PDF creation
+agreement versioning
+hash verification
 
-# DATABASE
-DATABASE_URL=postgresql://postgres:password@localhost:5432/esign
+# EsignService
+Manages the full eSign lifecycle:
 
-# STORAGE PATHS
-AGREEMENT_STORAGE_PATH=storage/generated_pdfs
-SIGNED_PDF_PATH=storage/signed_pdfs
+initiate eSign
+verify OTP
+process callback
+store signed document
+record audit logs
 
-# ESIGN PROVIDER (Mock or Real)
-ESIGN_PROVIDER=eMudhra
-ESIGN_BASE_URL=https://api.your-esign-provider.com/v1
-ESIGN_API_KEY=your_provider_key
-ESIGN_CLIENT_SECRET=your_provider_secret
+# LoanClient
+Responsible for communicating with the Loan Service API.
 
-# LOAN SERVICE (External)
-LOAN_SERVICE_BASE_URL=http://loan-service/api/v1/loans
+Purpose:
+validate loan
+fetch borrower details
+ensure loan status is APPROVED before agreement generation
 
-# CALLBACK
-ESIGN_CALLBACK_SECRET=REPLACE_WITH_32_CHAR_RANDOM_KEY
-CALLBACK_URL=${APP_BASE_URL}/api/v1/loan/esign/callback
+# Provider Layer
+The provider layer allows the system to support multiple eSign providers.
 
-**API Overview**
-1. Generate Agreement
---> POST /api/v1/loan/agreement/{loan_id}
+# base_provider.py
+Defines the interface that all providers must implement.
+Purpose:
+standardize provider communication
+allow provider switching without changing service code
 
-2. Initiate e-Sign (Send OTP)
---> POST /api/v1/loan/esign/initiate
+# mock_provider.py
+Used for development testing.
+Purpose:
+simulate OTP sending
+simulate signing
+allow development without real provider
 
-3. Verify e-Sign (Submit OTP)
---> POST /api/v1/loan/esign/verify
+This file is allows local testing.Not for real Implement
 
-4. Provider Callback (POST-only, secure)
---> POST /api/v1/loan/esign/callback
-Headers:
-   X-Signature: <HMAC signature>
-Body:
-{
-  "transaction_id": "string",
-  "loan_id": 0,
-  "status": "string",
-  "signed_pdf_url": "string",
-  "provider_signature_id": "string",
-  "timestamp": "2026-02-24T03:38:02.373Z"
-}
+# real_provider.py
 
-5. Disbursement – Status
---> GET /api/v1/loan/disbursement/{loan_id}/status
+Contains the integration layer for the actual eSign provider.
 
-6. Disbursement – Confirm
---> POST /api/v1/loan/disbursement/confirm
+This file currently acts as a placeholder until provider API documentation is available.
 
+# provider_client.py
 
-**Pending Work (Real Provider)**
+Low-level HTTP client responsible for:
 
-These items cannot be completed until the real provider API is known.
+making API requests
 
-<Download Signed PDF (Real Mode)>
+handling timeouts
 
-Currently mock returns "LOCAL"
-Real provider might return a URL like:
+retry logic
 
-signed_pdf_url: "https://...../signed-document.pdf"
+provider authentication headers
 
-Pending:
+Separates network logic from business logic.
 
-Auth headers
+# factory.py
 
-Token mechanism
+Loads the correct provider dynamically.
 
-Download logic
+Example:
 
-Save to storage/signed_pdfs/
+DEV → mock_provider
+PROD → real_provider
 
-Hash real PDF
+This allows switching providers without modifying service code.
 
-<Save Signed Document Record>
+# Database Tables
+--> agreements
 
-Table exists:
+Stores agreement metadata and file hash.
 
-signed_documents
+--> esign_sessions
 
-Pending real implementation:
+Tracks the lifecycle of each eSign transaction.
 
-session_id
+Purpose:
+track OTP state
+store provider responses
+maintain signing status
 
-agreement_id mapping
+--> signed_documents
 
-PDF path
+Stores the final signed agreement file.
 
-file hash
+--> esign_audit_logs
 
-<Update Agreement Status = SIGNED>
+Stores all events during the signing process.
 
-To be done only when:
+Purpose:
+debugging
+traceability
+compliance logging
 
-Signed PDF downloaded
+# API Endpoints
 
-Hash is validated
+Generate Agreement
 
-Callback status = SIGNED
+POST /api/v1/loan/agreement/{loan_id}
 
-<Callback Signature Validation (Real Mode)>
+Initiate eSign
 
-Mock provider bypasses signature.
-Pending:
+POST /api/v1/loan/esign/initiate
 
-Real signature algorithm
+Verify OTP
 
-Real secret key
+POST /api/v1/loan/esign/verify
 
-Validation mechanism
+Provider Callback
 
-<Loan Application Module Integration>
+POST /api/v1/loan/esign/callback
 
-LoanClient currently uses mock data.
-Pending:
+# Pending Work (Provider Integration)
 
-Real loan-service API
+These items require actual provider API documentation.
 
-Auth validation
+# Signed PDF Download
 
-User ownership check
+Provider will return a URL:
+signed_pdf_url
 
+Required work:
+download signed PDF
+store in storage/signed_pdfs
+generate SHA-256 hash
 
-📌 Notes
+# Agreement Status Update
 
-When loan module integrates, remove dummy user_id=1.
+After storing signed PDF:
 
-Module is fully functional in DEV/mock mode
+Agreement.status → SIGNED
 
-Real provider integration deliberately left incomplete (requires API specs)
+# Callback Signature Validation
+Real provider callback must verify signature using:
+X-Signature header
 
-All tables, schema, endpoints, middleware, logging, and base architecture are ready
+# Loan Service Integration
+LoanClient will be updated once Loan Service API authentication and response structure are finalized.
 
-Code uses dependency injection & is production-safe
+Notes
 
-**Final Developer Statement**
+user_id is currently hardcoded for development.
 
-“E-Sign Module is fully completed in DEV mode and ready for real provider integration.
-All pending items require actual e-Sign provider documentation and loan-service integration.
+Mock provider is intentionally retained for testing.
 
-Disbursement APIs are included to simulate the final stage of the loan lifecycle. In production architecture this would typically be implemented as a separate microservice triggered after successful eSign completion
+Static file serving is used only for local development.
+
+Production environments typically store documents in external storage.
+
+PDF generation currently implemented for DEV testing.
+In production, agreement PDFs will be fetched from the external document service.
+
+# Final Status
+
+The Loan Agreement & E-Sign module is functionally complete in development mode.
+
+All infrastructure required for production integration is already implemented, including:
+
+database schema
+
+provider abstraction
+
+audit logging
+
+callback handling
+
+document storage logic
 
 

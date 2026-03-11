@@ -1,12 +1,10 @@
 from sqlalchemy.orm import Session
 from app.models.agreement import Agreement
-from app.models.loan_dummy import DummyLoan
 from app.core.logger import logger
 from app.core.exceptions import throw_error
 from app.pdf.pdf_generator import PDFGenerator
 from app.services.loan_client import LoanClient
 from app.utils.response import success_response
-from app.core.config import settings
 
 
 class AgreementService:
@@ -17,32 +15,22 @@ class AgreementService:
 
     # FETCH AGREEMENT (RETURN EXISTING OR CREATE NEW)
     def fetch_agreement(self, loan_id: int, db: Session):
+
         logger.info(f"[Agreement] Fetching agreement for loan_id={loan_id}")
 
         if loan_id <= 0:
             throw_error("Invalid loan id", 400)
 
-        # GET LOAN DATA: DEV OR REAL
-        if settings.ENV == "DEV":
-            loan = db.query(DummyLoan).filter(DummyLoan.id == loan_id).first()
-            if not loan:
-                throw_error("Loan not found in dummy DB", 404)
+        # Fetch loan details
+        loan = self.loan_client.get_loan_sync(loan_id)
 
-            loan = {
-                "borrower_name": loan.borrower_name,
-                "loan_amount": loan.loan_amount,
-                "loan_status": loan.loan_status,
-            }
-
-        else:
-            loan = self.loan_client.get_loan_sync(loan_id)
-            if not loan:
-                throw_error("Loan not found in loan service", 404)
+        if not loan:
+            throw_error("Loan not found", 404)
 
         if loan["loan_status"] != "APPROVED":
             throw_error("Loan is not approved", 403)
 
-        # CHECK IF AGREEMENT EXISTS
+        # Check existing agreement
         existing = db.query(Agreement).filter(
             Agreement.loan_id == loan_id,
             Agreement.is_active == True
@@ -60,14 +48,14 @@ class AgreementService:
                 }
             )
 
-        # DETERMINE NEW VERSION
+        # Determine next version
         latest = db.query(Agreement).filter(
             Agreement.loan_id == loan_id
         ).order_by(Agreement.version.desc()).first()
 
         new_version = 1 if not latest else latest.version + 1
 
-        # GENERATE PDF
+        # Generate agreement PDF
         pdf_output = self.pdf.generate_agreement(
             loan_id=loan_id,
             borrower_name=loan["borrower_name"],
@@ -75,12 +63,14 @@ class AgreementService:
         )
 
         file_path = pdf_output["file_path"]
+
+        # Generate hash
         file_hash = self.pdf.generate_hash(file_path)
 
-        # INSERT AGREEMENT
+        # Save agreement
         agreement = Agreement(
             loan_id=loan_id,
-            user_id=1,  # TEMP until AUTH ready
+            user_id=1,  # TEMP until auth integration
             version=new_version,
             agreement_pdf_path=file_path,
             file_hash=file_hash,
@@ -104,7 +94,8 @@ class AgreementService:
 
     # VERIFY HASH
     def verify_hash(self, loan_id: int, db: Session):
-        logger.info(f"[Agreement] Fetching agreement for loan_id={loan_id}")
+
+        logger.info(f"[Agreement] Verifying hash for loan_id={loan_id}")
 
         agreement = db.query(Agreement).filter(
             Agreement.loan_id == loan_id,
@@ -114,7 +105,9 @@ class AgreementService:
         if not agreement:
             throw_error("Agreement not found", 404)
 
-        generated_hash = self.pdf.generate_hash(agreement.agreement_pdf_path)
+        generated_hash = self.pdf.generate_hash(
+            agreement.agreement_pdf_path
+        )
 
         if generated_hash != agreement.file_hash:
             throw_error("Document has been modified", 409)

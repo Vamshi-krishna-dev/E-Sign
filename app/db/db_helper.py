@@ -6,5 +6,5 @@ def safe_commit(db):
         db.commit()
     except SQLAlchemyError as e:
         db.rollback()
-        throw_error(f"Database Error: {str(e)}",500)    
+        throw_error(f"Database Error: {str(e)}",500) 
     
